@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1720">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tank Volume">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Offline tank volume calculator: horizontal, vertical flat and cone-bottom tanks.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Tank Volume Calculator</title>
+<style>
+:root{--bg:#0f1720;--card:#1a2633;--line:#33475c;--tx:#f2f5f8;--mut:#9fb2c5;--acc:#ffb400;--onacc:#101820;--liq:#29b6f6;--err:#ff6b6b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#eef1f4;--card:#fff;--line:#b8c4d0;--tx:#12202e;--mut:#4a5d70;--acc:#e69a00;--err:#c62828}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:12px 14px 40px}
+h1{font-size:22px;letter-spacing:.06em;text-align:center;margin:14px 0 4px;text-transform:uppercase}
+.sub{text-align:center;color:var(--mut);margin:0 0 18px;font-size:14px}
+.tile{display:flex;align-items:center;gap:14px;width:100%;background:var(--card);color:var(--tx);border:2px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;font:inherit;text-align:left;cursor:pointer}
+.tile:active{border-color:var(--acc)}
+.tile svg{width:110px;height:84px;flex:none}
+.tile b{font-size:18px;letter-spacing:.04em;display:block}
+.tile span{color:var(--mut);font-size:13px}
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.bar h2{flex:1;font-size:17px;margin:0;text-transform:uppercase;letter-spacing:.05em}
+button.b{background:var(--card);color:var(--tx);border:2px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;font-weight:700;min-height:48px;cursor:pointer}
+button.p{background:var(--acc);color:var(--onacc);border-color:var(--acc);width:100%;font-size:18px;letter-spacing:.06em;min-height:56px}
+.row{display:flex;gap:10px;margin-bottom:10px}
+.row>*{flex:1}
+label.f{display:block;font-size:13px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.in{display:flex;align-items:center;background:var(--card);border:2px solid var(--line);border-radius:10px;margin-top:4px}
+.in:focus-within{border-color:var(--acc)}
+.in input{flex:1;min-width:0;background:none;border:0;color:var(--tx);font:inherit;font-size:22px;padding:12px;outline:0}
+.in i{font-style:normal;color:var(--mut);padding-right:12px}
+select{width:100%;background:var(--card);color:var(--tx);border:2px solid var(--line);border-radius:10px;font:inherit;font-size:17px;padding:12px;min-height:48px;margin-top:4px}
+.sec{font-size:13px;color:var(--acc);font-weight:800;letter-spacing:.1em;margin:16px 0 6px;text-transform:uppercase}
+.fld{margin-bottom:10px}
+.hint{font-size:12px;color:var(--mut);margin-top:3px}
+.gfx{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px;margin:8px 0 12px}
+.gfx svg{display:block;width:100%;max-height:300px}
+.err{background:rgba(255,107,107,.15);border:2px solid var(--err);color:var(--err);border-radius:10px;padding:10px 12px;margin:10px 0;font-weight:600}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.res{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:12px}
+.res small{display:block;color:var(--mut);font-weight:700;font-size:12px;letter-spacing:.06em}
+.res strong{font-size:26px;line-height:1.2;word-break:break-word}
+.res em{font-style:normal;font-size:14px;color:var(--mut)}
+.res.hl{border-color:var(--acc)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td{padding:7px 4px;border-bottom:1px solid var(--line)}td+td{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+details{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:12px}
+summary{font-weight:800;cursor:pointer;min-height:32px;text-transform:uppercase;letter-spacing:.05em}
+.tw{overflow-x:auto}
+#inst{margin:6px 0 14px}
+#instHelp{background:var(--card);border:2px solid var(--acc);border-radius:12px;padding:12px 14px;margin:-4px 0 14px;font-size:15px;line-height:1.5}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <!-- HOME -->
+ <section id="home">
+  <h1>Tank Volume Calculator</h1>
+  <p class="sub">Select tank type</p>
+  <div id="tiles"></div>
+  <div id="installBox" hidden>
+   <button class="b p" id="inst">⬇ Install app</button>
+   <div id="instHelp" hidden></div>
+  </div>
+  <button class="b" id="share" style="width:100%;font-size:17px;margin-bottom:14px">📤 Share app</button>
+  <div id="shareMsg" class="sub" hidden></div>
+  <button class="b" id="upd" style="width:100%;font-size:17px;margin-bottom:14px">🔄 Check for updates</button>
+  <div id="updMsg" class="sub" hidden></div>
+  <p class="sub">Works fully offline &bull; no data leaves your phone</p>
+  <p class="sub" style="font-size:12px" id="ver"></p>
+ </section>
+ <!-- CALCULATOR -->
+ <section id="calc" hidden>
+  <div class="bar"><button class="b" id="back">&larr; Back</button><h2 id="ttl"></h2><button class="b" id="reset">Reset</button></div>
+  <div class="row">
+   <div><label class="f" for="du">Dimension unit</label>
+    <select id="du"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option><option value="in">inches</option><option value="ft">feet</option></select></div>
+   <div><label class="f" for="vu">Volume unit</label>
+    <select id="vu"><option value="L">Litres</option><option value="m3">m³</option><option value="usgal">US gallons</option><option value="impgal">Imperial gallons</option></select></div>
+  </div>
+  <div class="gfx" id="gfx"></div>
+  <div class="sec">Tank dimensions</div>
+  <div id="fields"></div>
+  <button class="b p" id="go">Calculate volume</button>
+  <div id="err" class="err" hidden></div>
+  <div id="out" hidden>
+   <div class="grid" id="cards"></div>
+   <div id="parts"></div>
+   <details><summary>Calculation details</summary><div class="tw"><table id="det"></table></div></details>
+  </div>
+ </section>
+</div>
+
+<!-- ===================== CALCULATION LOGIC (no UI code) ===================== -->
+<script id="calc">
+/* All maths is done in METRES / CUBIC METRES. Inputs are converted first,
+   nothing is rounded until display. To change a unit, edit LEN / VOL below. */
+const TV = (() => {
+  const PI = Math.PI;
+  // metres per unit
+  const LEN = { mm: 0.001, cm: 0.01, m: 1, in: 0.0254, ft: 0.3048 };
+  // units per cubic metre
+  const VOL = { L: 1000, m3: 1, usgal: 1000 / 3.785411784, impgal: 1000 / 4.54609 };
+
+  /* Circular segment area for a horizontal cylinder, liquid depth h, radius R:
+     A = R^2*acos((R-h)/R) - (R-h)*sqrt(2Rh - h^2)   (h clamped to 0..2R) */
+  function segmentArea(R, h) {
+    if (h <= 0) return 0;
+    if (h >= 2 * R) return PI * R * R;
+    const x = Math.max(-1, Math.min(1, (R - h) / R));
+    return R * R * Math.acos(x) - (R - h) * Math.sqrt(Math.max(0, 2 * R * h - h * h));
+  }
+
+  // Horizontal tank: V = A * L
+  function horizontal(D, L, f) {
+    const R = D / 2, area = PI * R * R, segA = segmentArea(R, f);
+    const total = area * L, liq = segA * L;
+    return { total, liq, pct: liq / total * 100,
+      rows: [['Tank radius R', R, 'm'], ['End cross-section π·R²', area, 'm²'], ['Liquid segment area A', segA, 'm²'],
+             ['Total volume π·R²·L', total, 'm³'], ['Liquid volume A·L', liq, 'm³']] };
+  }
+
+  // Vertical flat tank: V = π R² h
+  function flat(D, H, f) {
+    const R = D / 2, area = PI * R * R, total = area * H, liq = area * f;
+    return { total, liq, pct: f / H * 100,
+      rows: [['Tank radius R', R, 'm'], ['Cross-section π·R²', area, 'm²'],
+             ['Total volume π·R²·H', total, 'm³'], ['Liquid volume π·R²·h', liq, 'm³']] };
+  }
+
+  /* Cone-bottom tank. Fill level f is measured from the LOWEST point
+     (bottom of pipe connector). From bottom up: pipe (pl) -> cone (Hc, same
+     diameter as tank, apex down) -> cylinder (S).
+       pipe  : π r² · f
+       cone  : (1/3) π R² x³ / Hc²   (x = f - pl, liquid height inside cone)
+       cylinder above cone : π R² · (f - pl - Hc)                           */
+  function cone(D, S, f, Hc, pd, pl) {
+    const R = D / 2, r = pd / 2;
+    const pipeV = PI * r * r * pl, coneV = PI * R * R * Hc / 3, cylV = PI * R * R * S;
+    const total = pipeV + coneV + cylV;
+    let liq, zone;
+    if (f <= pl) { liq = PI * r * r * f; zone = 'pipe connector'; }
+    else if (f <= pl + Hc) { const x = f - pl; liq = pipeV + PI * R * R * x ** 3 / (3 * Hc * Hc); zone = 'cone'; }
+    else { liq = pipeV + coneV + PI * R * R * (f - pl - Hc); zone = 'cylinder'; }
+    return { total, liq, pct: liq / total * 100, pipeV, coneV, cylV, zone,
+      rows: [['Tank radius R', R, 'm'], ['Pipe radius r', r, 'm'], ['Total height (pipe+cone+shell)', pl + Hc + S, 'm'],
+             ['Cylinder volume π·R²·S', cylV, 'm³'], ['Cone volume ⅓·π·R²·Hc', coneV, 'm³'],
+             ['Pipe volume π·r²·L', pipeV, 'm³'], ['Total volume', total, 'm³'],
+             ['Liquid is in the', zone, ''], ['Liquid volume', liq, 'm³']] };
+  }
+
+  // Validation: v = values in metres (NaN = missing). Returns error string or ''.
+  function validate(type, v) {
+    const bad = x => !isFinite(x);
+    if (bad(v.D) || v.D <= 0) return 'Tank diameter must be greater than zero.';
+    if (type === 'h') { if (bad(v.L) || v.L <= 0) return 'Tank shell length must be greater than zero.'; }
+    if (type === 'v') { if (bad(v.H) || v.H <= 0) return 'Tank height must be greater than zero.'; }
+    if (type === 'c') {
+      if (bad(v.S) || v.S <= 0) return 'Cylinder shell height must be greater than zero.';
+      if (bad(v.C) || v.C <= 0) return 'Cone height must be greater than zero.';
+      if (v.PD < 0) return 'Pipe diameter cannot be negative.';
+      if (v.PL < 0) return 'Pipe length cannot be negative.';
+      if (v.PD >= v.D) return 'Pipe diameter must be smaller than the tank diameter.';
+    }
+    if (bad(v.F)) return 'Please enter the current fill level.';
+    if (v.F < 0) return 'Fill level cannot be negative.';
+    const max = type === 'h' ? v.D : type === 'v' ? v.H : v.S + v.C + v.PL;
+    if (v.F > max * (1 + 1e-12)) return type === 'h' ? 'Fill level cannot be greater than tank diameter.'
+      : 'Fill level cannot be greater than tank height' + (type === 'c' ? ' (pipe + cone + shell).' : '.');
+    return '';
+  }
+
+  function compute(type, v) {
+    const e = validate(type, v);
+    if (e) return { error: e };
+    const r = type === 'h' ? horizontal(v.D, v.L, v.F) : type === 'v' ? flat(v.D, v.H, v.F)
+      : cone(v.D, v.S, v.F, v.C, v.PD, v.PL);
+    r.remaining = r.total - r.liq;
+    return r;
+  }
+  return { PI, LEN, VOL, segmentArea, horizontal, flat, cone, validate, compute };
+})();
+</script>
+
+<!-- ===================== USER INTERFACE ===================== -->
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const TYPES = {
+    h: { name: 'Horizontal Tank', sub: 'Cylinder on its side', fields: [['D', 'Tank diameter'], ['L', 'Tank shell length'], ['F', 'Current fill level (from bottom)']] },
+    v: { name: 'Vertical — Flat Bottom', sub: 'Flat top & bottom', fields: [['D', 'Tank diameter'], ['H', 'Tank shell height'], ['F', 'Current fill level (from bottom)']] },
+    c: { name: 'Vertical — Cone Bottom', sub: 'Cone + pipe connector', fields: [['D', 'Tank diameter'], ['S', 'Cylinder / shell height'], ['C', 'Cone height'], ['PD', 'Pipe connector diameter'], ['PL', 'Pipe connector length'], ['F', 'Current fill level (from lowest point)']] }
+  };
+  const OPTIONAL = { PD: 1, PL: 1 };
+  const st = { type: null, du: 'mm', vu: 'L', vals: { h: {}, v: {}, c: {} } };
+  try { st.du = localStorage.getItem('tv_du') || 'mm'; st.vu = localStorage.getItem('tv_vu') || 'L'; } catch (e) {}
+
+  const W = '#29b6f6', S = 'currentColor';
+  const icon = {
+    h: `<svg viewBox="0 0 110 84"><rect x="8" y="22" width="94" height="40" rx="14" fill="none" stroke="${S}" stroke-width="3"/><path d="M10 46h90v8q-2 8-14 8H24q-12 0-14-8z" fill="${W}" opacity=".8"/><line x1="8" y1="74" x2="102" y2="74" stroke="${S}" stroke-width="1.5"/></svg>`,
+    v: `<svg viewBox="0 0 110 84"><rect x="30" y="8" width="50" height="68" rx="3" fill="none" stroke="${S}" stroke-width="3"/><rect x="32" y="40" width="46" height="34" fill="${W}" opacity=".8"/></svg>`,
+    c: `<svg viewBox="0 0 110 84"><path d="M30 6h50v36L60 68v10H50V68L30 42z" fill="none" stroke="${S}" stroke-width="3" stroke-linejoin="round"/><path d="M32 30h46v11L60 66H50L32 41z" fill="${W}" opacity=".8"/></svg>`
+  };
+  $('tiles').innerHTML = Object.keys(TYPES).map(k =>
+    `<button class="tile" data-k="${k}">${icon[k]}<div><b>${{h:'🛢️',v:'⬆️',c:'🔻'}[k]} ${TYPES[k].name.toUpperCase()}</b><span>${TYPES[k].sub}</span></div></button>`).join('');
+  $('tiles').onclick = e => { const b = e.target.closest('.tile'); if (b) open(b.dataset.k); };
+
+  const toM = (x, u) => x * TV.LEN[u];
+  const fromM = (x, u) => x / TV.LEN[u];
+  const grp = s => s.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+  function fmtVol(m3, u) {
+    const x = m3 * TV.VOL[u];
+    if (u === 'L') return grp(String(Math.round(x)));
+    if (u === 'm3') return x.toFixed(3);
+    const d = x.toFixed(1).split('.'); return grp(d[0]) + '.' + d[1];
+  }
+  const uname = { L: 'L', m3: 'm³', usgal: 'US gal', impgal: 'Imp gal' };
+  const num = s => { s = String(s ?? '').trim().replace(',', '.'); return s === '' ? NaN : Number(s); };
+
+  function open(k) {
+    st.type = k; $('home').hidden = true; $('calc').hidden = false;
+    $('ttl').textContent = TYPES[k].name; $('du').value = st.du; $('vu').value = st.vu;
+    $('fields').innerHTML = TYPES[k].fields.map(([id, lab]) =>
+      `<div class="fld"><label class="f" for="f_${id}">${lab}</label><div class="in"><input id="f_${id}" inputmode="decimal" autocomplete="off" placeholder="${OPTIONAL[id] ? '0 (optional)' : ''}" value="${st.vals[k][id] ?? ''}"><i class="u"></i></div></div>`).join('');
+    units(); hideOut(); gfx(); window.scrollTo(0, 0);
+  }
+  function units() { document.querySelectorAll('.u').forEach(e => e.textContent = $('du').selectedOptions[0].textContent); }
+  function hideOut() { $('out').hidden = true; $('err').hidden = true; }
+  function read() { // returns values in metres
+    const v = {};
+    TYPES[st.type].fields.forEach(([id]) => {
+      let x = num($('f_' + id).value); st.vals[st.type][id] = $('f_' + id).value;
+      if (OPTIONAL[id] && isNaN(x)) x = 0;
+      v[id] = toM(x, st.du);
+    });
+    return v;
+  }
+
+  $('du').onchange = () => { // convert existing entries so the physical size stays the same
+    const old = st.du, nu = $('du').value;
+    TYPES[st.type].fields.forEach(([id]) => { const el = $('f_' + id), x = num(el.value);
+      if (!isNaN(x)) el.value = +fromM(toM(x, old), nu).toPrecision(8); });
+    st.du = nu; try { localStorage.setItem('tv_du', nu); } catch (e) {}
+    units(); read(); hideOut(); gfx();
+  };
+  $('vu').onchange = () => { st.vu = $('vu').value; gfx(); try { localStorage.setItem('tv_vu', st.vu); } catch (e) {} if (!$('out').hidden) go(); };
+  $('fields').oninput = () => { hideOut(); gfx(); };
+  $('back').onclick = () => { $('calc').hidden = true; $('home').hidden = false; };
+  $('reset').onclick = () => { st.vals[st.type] = {}; open(st.type); };
+  $('go').onclick = go;
+
+  function go() {
+    const v = read(), r = TV.compute(st.type, v);
+    if (r.error) { $('err').textContent = r.error; $('err').hidden = false; $('out').hidden = true; return; }
+    $('err').hidden = true; $('out').hidden = false;
+    const u = st.vu, card = (t, m3, hl) => `<div class="res ${hl ? 'hl' : ''}"><small>${t}</small><strong>${fmtVol(m3, u)}</strong> <em>${uname[u]}</em></div>`;
+    $('cards').innerHTML = card('TOTAL CAPACITY', r.total) + card('CURRENT VOLUME', r.liq, 1) + card('REMAINING', r.remaining) +
+      `<div class="res hl"><small>FILL LEVEL</small><strong>${r.pct.toFixed(1)}</strong> <em>%</em></div>`;
+    // secondary line: always show litres and m3
+    $('cards').insertAdjacentHTML('beforeend', `<div class="res" style="grid-column:1/3"><small>CURRENT VOLUME — ALL UNITS</small><em>${fmtVol(r.liq,'L')} L &bull; ${fmtVol(r.liq,'m3')} m³ &bull; ${fmtVol(r.liq,'usgal')} US gal &bull; ${fmtVol(r.liq,'impgal')} Imp gal</em></div>`);
+    $('parts').innerHTML = st.type !== 'c' ? '' : `<details open><summary>Volume of sections</summary><table>` +
+      [['Cylinder', r.cylV], ['Cone', r.coneV], ['Pipe connector', r.pipeV], ['Total', r.total]].map(([n, x]) =>
+        `<tr><td>${n}</td><td>${fmtVol(x, 'L')} L<br>${fmtVol(x, 'm3')} m³</td></tr>`).join('') + `</table></details>`;
+    const f = (x, un) => typeof x === 'string' ? x : (un === 'm³' ? x.toFixed(5) + ' m³ (' + fmtVol(x, 'L') + ' L)' : x.toFixed(5) + ' ' + un);
+    $('det').innerHTML = r.rows.map(([n, x, un]) => `<tr><td>${n}</td><td>${f(x, un)}</td></tr>`).join('') +
+      `<tr><td>Remaining volume</td><td>${r.remaining.toFixed(5)} m³</td></tr><tr><td>Percentage full</td><td>${r.pct.toFixed(2)} %</td></tr>`;
+    $('out').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ---------- live tank graphic ----------
+  // Tank is drawn to scale (from the dimensions typed) and the liquid is drawn at the real
+  // fill height, so the picture matches the calculated volume. The label shows the volume %.
+  function gfx() {
+    const v = read(), t = st.type, ok = x => isFinite(x) && x > 0, cl = x => Math.max(0, Math.min(1, x));
+    const r = TV.compute(t, v), good = !r.error, pct = good ? r.pct : 0;
+    const pill = y => `<rect x="60" y="${y - 28}" width="200" height="54" rx="12" fill="rgba(15,23,32,.88)" stroke="#29b6f6" stroke-width="2"/>
+      <text x="160" y="${y - 3}" text-anchor="middle" fill="#fff" font-size="22" font-weight="800">${good ? pct.toFixed(1) + '% full' : 'Enter dimensions'}</text>
+      <text x="160" y="${y + 16}" text-anchor="middle" fill="#bfe6fb" font-size="13">${good ? fmtVol(r.liq, st.vu) + ' ' + uname[st.vu] + ' of ' + fmtVol(r.total, st.vu) : ''}</text>`;
+    const K = 'fill="none" stroke="currentColor" stroke-width="4"', G = 'fill="rgba(128,128,128,.25)"';
+    let s;
+    if (t === 'h') {
+      const D = ok(v.D) ? v.D : 1, L = ok(v.L) ? v.L : 2.5, sc = Math.min(260 / L, 100 / D);
+      const w = Math.max(120, L * sc), h = Math.max(40, D * sc), x0 = 160 - w / 2, y0 = 75 - h / 2, rx = Math.min(w * .15, 40);
+      const fr = ok(v.D) && isFinite(v.F) ? cl(v.F / v.D) : 0, yl = y0 + h * (1 - fr);
+      s = `<svg viewBox="0 0 320 195"><defs><clipPath id="cp"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${rx}" ry="${h / 2}"/></clipPath></defs>
+      <rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${rx}" ry="${h / 2}" ${G}/>
+      <rect x="${x0}" y="${yl}" width="${w}" height="${y0 + h - yl}" fill="#29b6f6" clip-path="url(#cp)"/>
+      <rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${rx}" ry="${h / 2}" ${K}/>
+      <line x1="${x0 - 14}" y1="${yl}" x2="${x0 + 6}" y2="${yl}" stroke="#ffb400" stroke-width="3"/>${pill(158)}</svg>`;
+    } else if (t === 'v') {
+      const D = ok(v.D) ? v.D : 1, H = ok(v.H) ? v.H : 2, sc = Math.min(180 / D, 200 / H);
+      const w = Math.max(40, D * sc), h = Math.max(40, H * sc), x0 = 160 - w / 2, yb = 225, y0 = yb - h;
+      const fr = ok(v.H) && isFinite(v.F) ? cl(v.F / v.H) : 0, yl = yb - h * fr;
+      s = `<svg viewBox="0 0 320 300"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" ${G}/>
+      <rect x="${x0}" y="${yl}" width="${w}" height="${yb - yl}" fill="#29b6f6"/>
+      <rect x="${x0}" y="${y0}" width="${w}" height="${h}" ${K}/>
+      <line x1="${x0 - 22}" y1="${yl}" x2="${x0}" y2="${yl}" stroke="#ffb400" stroke-width="3"/>${pill(268)}</svg>`;
+    } else {
+      const D = ok(v.D) ? v.D : 1.5, Sh = ok(v.S) ? v.S : 2, Ch = ok(v.C) ? v.C : 1, PL = v.PL > 0 ? v.PL : 0, PD = v.PD > 0 ? Math.min(v.PD, D * .9) : 0;
+      const tot = Sh + Ch + PL, sc = Math.min(170 / D, 215 / tot);
+      const hw = Math.max(20, D * sc / 2), ds = Math.max(30, Sh * sc), dc = Math.max(14, Ch * sc), dp = PL > 0 ? Math.max(8, PL * sc) : 0;
+      const pw = PD > 0 ? Math.max(3, PD * sc / 2) : 1.5, cx = 160, yb = 235, y2 = yb - dp, y1 = y2 - dc, top = y1 - ds;
+      const shape = `M${cx - hw} ${top}H${cx + hw}V${y1}L${cx + pw} ${y2}V${yb}H${cx - pw}V${y2}L${cx - hw} ${y1}Z`;
+      const f = isFinite(v.F) ? Math.max(0, Math.min(tot, v.F)) : 0; let h;
+      if (f <= PL) h = PL > 0 ? dp * f / PL : 0; else if (f <= PL + Ch) h = dp + dc * (f - PL) / Ch; else h = dp + dc + ds * (f - PL - Ch) / Sh;
+      const yl = yb - h;
+      s = `<svg viewBox="0 0 320 310"><defs><clipPath id="cp"><path d="${shape}"/></clipPath></defs>
+      <path d="${shape}" ${G}/><rect x="0" y="${yl}" width="320" height="${yb - yl}" fill="#29b6f6" clip-path="url(#cp)"/>
+      <path d="${shape}" ${K} stroke-linejoin="round"/>
+      <line x1="${cx - hw - 24}" y1="${yl}" x2="${cx - hw}" y2="${yl}" stroke="#ffb400" stroke-width="3"/>
+      <line x1="${cx - hw}" y1="${y1}" x2="${cx + hw}" y2="${y1}" stroke="currentColor" stroke-width="1" stroke-dasharray="4 4"/>${pill(278)}</svg>`;
+    }
+    $('gfx').innerHTML = s;
+  }
+})();
+</script>
+<script>
+/* Update button: compares the running version with the newest sw.js on the server.
+   If newer, it clears the old saved copy and reloads so the latest version installs. */
+(() => {
+  const APP = 'tank-calc-v8';                         // must match CACHE_VERSION in sw.js
+  const ver = document.getElementById('ver'), vn = 'Version ' + APP.split('-v')[1];
+  ver.textContent = vn;
+  // shows whether the app files are saved on the phone for offline use
+  const offline = () => caches.match('./index.html', { ignoreSearch: true })
+    .then(h => { ver.textContent = vn + (h ? ' · ✅ Offline ready' : ' · ⏳ Preparing offline mode…'); return !!h; }).catch(() => {});
+  offline();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.ready.then(() => setTimeout(offline, 1500)).catch(() => {});
+  const msg = document.getElementById('updMsg'), show = t => { msg.textContent = t; msg.hidden = false; };
+  document.getElementById('upd').onclick = async () => {
+    show('Checking for updates…');
+    let latest = null;
+    try {
+      const t = await (await fetch('sw.js?' + Date.now(), { cache: 'no-store' })).text();
+      latest = (t.match(/CACHE_VERSION\s*=\s*'([^']+)'/) || [])[1];
+    } catch (e) { show('❌ Could not check. Are you online?'); return; }
+    if (!latest) { show('❌ Could not read the latest version.'); return; }
+    if (latest === APP) { show('✅ You already have the latest version (' + APP.split('-v')[1] + ').'); return; }
+    show('⬇ Installing version ' + latest.split('-v')[1] + '…');
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+      await Promise.all((await caches.keys()).map(k => caches.delete(k)));
+      await fetch('index.html', { cache: 'reload' });   // refresh the browser's own copy too
+    } catch (e) {}
+    location.reload();
+  };
+})();
+</script>
+<script>
+/* Share button: native share sheet (WhatsApp, SMS, email...) on phones;
+   falls back to copying the link to the clipboard. */
+(() => {
+  const url = location.origin + location.pathname.replace(/index\.html$/, '');
+  const msg = document.getElementById('shareMsg');
+  const note = t => { msg.textContent = t; msg.hidden = false; setTimeout(() => msg.hidden = true, 6000); };
+  document.getElementById('share').onclick = async () => {
+    const data = { title: 'Tank Volume Calculator', text: 'Free offline tank volume calculator (horizontal, vertical & cone-bottom tanks). Open the link, then tap Install app:', url };
+    try {
+      if (navigator.share) { await navigator.share(data); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }   // user closed the share sheet
+    try { await navigator.clipboard.writeText(url); note('Link copied: ' + url); }
+    catch (e) { window.prompt('Copy this link and send it:', url); }
+  };
+})();
+</script>
+<script>
+/* Install button: uses the browser's install prompt (Android/Chrome/Edge/desktop);
+   on iPhone/iPad (no prompt API) it shows the Add-to-Home-Screen steps instead. */
+(() => {
+  const box = document.getElementById('installBox'), btn = document.getElementById('inst'), help = document.getElementById('instHelp');
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (standalone()) return;                       // already installed: keep button hidden
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let deferred = null;
+  box.hidden = false;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; });
+  window.addEventListener('appinstalled', () => { box.hidden = true; deferred = null; });
+  btn.onclick = async () => {
+    if (deferred) {
+      deferred.prompt();
+      const r = await deferred.userChoice; deferred = null;
+      if (r.outcome === 'accepted') box.hidden = true;
+      return;
+    }
+    help.innerHTML = ios
+      ? '<b>Install on iPhone / iPad</b><br>1. Open this page in <b>Safari</b>.<br>2. Tap the <b>Share</b> button (square with arrow).<br>3. Scroll and tap <b>Add to Home Screen</b>, then <b>Add</b>.'
+      : '<b>Install on Android</b><br>Open this page in <b>Chrome</b>, tap the <b>⋮ menu</b>, then <b>Install app</b> (or <b>Add to Home screen</b>).<br><small>If the button does nothing, wait a few seconds for the page to finish loading and try again.</small>';
+    help.hidden = !help.hidden;
+    if (!ios && !help.hidden) diagnose();
+  };
+  /* Shows exactly what is missing if the browser refuses to install */
+  async function diagnose() {
+    const ok = (t, g) => `<br>${g ? '✅' : '❌'} ${t}`;
+    const get = async u => { try { return (await fetch(u, { cache: 'no-store' })).ok; } catch (e) { return false; } };
+    let r = '<br><b>Install check</b>';
+    if (/SamsungBrowser/i.test(navigator.userAgent)) r += '<br>⚠️ You are in <b>Samsung Internet</b>. Open this link in <b>Chrome</b> instead.';
+    r += ok('Secure https page', location.protocol === 'https:');
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    r += ok('Offline engine (service worker) running', !!(reg && (reg.active || reg.installing || reg.waiting)));
+    r += ok('manifest.webmanifest found', await get('manifest.webmanifest'));
+    r += ok('icon-192.png found', await get('icon-192.png'));
+    r += ok('icon-512.png found', await get('icon-512.png'));
+    help.insertAdjacentHTML('beforeend', r);
+  }
+})();
+</script>
+<script>
+/* Register the service worker (needs https or localhost) so the app works offline. */
+if ('serviceWorker' in navigator) {
+  const hadSW = !!navigator.serviceWorker.controller; let reloaded = false;
+  // when a NEW version takes over, reload once so the latest screen shows immediately
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSW && !reloaded) { reloaded = true; location.reload(); } });
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {}));
+}
+</script>
+</body>
+</html>
