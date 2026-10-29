@@ -1,0 +1,7 @@
+{
+  "appId": "com.m9r1u5.tankvolume",
+  "appName": "Tank Volume",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false }
+}

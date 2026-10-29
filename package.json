@@ -1,0 +1,11 @@
+{
+  "name": "tank-volume-calculator",
+  "version": "9.0.0",
+  "private": true,
+  "description": "Offline tank volume calculator (PWA + Android APK via Capacitor)",
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  }
+}

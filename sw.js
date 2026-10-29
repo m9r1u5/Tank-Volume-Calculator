@@ -3,7 +3,7 @@
    - Page/script requests: network first (3 s limit) so updates show up, otherwise the cached copy.
    - Images: cache first.
    Bump CACHE_VERSION whenever you change any file (and APP in index.html to match). */
-const CACHE_VERSION = 'tank-calc-v8';
+const CACHE_VERSION = 'tank-calc-v9';
 const FILES = ['./index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './maskable-512.png', './apple-touch-icon.png'];
 const NET_TIMEOUT = 3000;
 

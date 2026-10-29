@@ -71,6 +71,7 @@ summary{font-weight:800;cursor:pointer;min-height:32px;text-transform:uppercase;
   <div id="installBox" hidden>
    <button class="b p" id="inst">⬇ Install app</button>
    <div id="instHelp" hidden></div>
+   <a id="apkLink" class="b" hidden style="display:block;text-align:center;text-decoration:none;margin:-4px 0 14px" href="https://github.com/m9r1u5/Tank-Volume-Calculator/releases/latest" target="_blank" rel="noopener">🤖 Download Android APK</a>
   </div>
   <button class="b" id="share" style="width:100%;font-size:17px;margin-bottom:14px">📤 Share app</button>
   <div id="shareMsg" class="sub" hidden></div>
@@ -328,7 +329,9 @@ const TV = (() => {
 /* Update button: compares the running version with the newest sw.js on the server.
    If newer, it clears the old saved copy and reloads so the latest version installs. */
 (() => {
-  const APP = 'tank-calc-v8';                         // must match CACHE_VERSION in sw.js
+  const APP = 'tank-calc-v9';
+  const LIVE = 'https://m9r1u5.github.io/Tank-Volume-Calculator/';   // GitHub Pages address (used by the APK to look for updates)
+  const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) || /; wv\)/.test(navigator.userAgent);                         // must match CACHE_VERSION in sw.js
   const ver = document.getElementById('ver'), vn = 'Version ' + APP.split('-v')[1];
   ver.textContent = vn;
   // shows whether the app files are saved on the phone for offline use
@@ -341,11 +344,12 @@ const TV = (() => {
     show('Checking for updates…');
     let latest = null;
     try {
-      const t = await (await fetch('sw.js?' + Date.now(), { cache: 'no-store' })).text();
+      const t = await (await fetch((NATIVE ? LIVE : '') + 'sw.js?' + Date.now(), { cache: 'no-store' })).text();
       latest = (t.match(/CACHE_VERSION\s*=\s*'([^']+)'/) || [])[1];
     } catch (e) { show('❌ Could not check. Are you online?'); return; }
     if (!latest) { show('❌ Could not read the latest version.'); return; }
     if (latest === APP) { show('✅ You already have the latest version (' + APP.split('-v')[1] + ').'); return; }
+    if (NATIVE) { msg.innerHTML = '⬇ Version ' + latest.split('-v')[1] + ' is available. <a href="https://github.com/m9r1u5/Tank-Volume-Calculator/releases/latest" target="_blank" rel="noopener">Download the new APK</a> and install it over this one.'; return; }
     show('⬇ Installing version ' + latest.split('-v')[1] + '…');
     try {
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -375,36 +379,59 @@ const TV = (() => {
 })();
 </script>
 <script>
-/* Install button: uses the browser's install prompt (Android/Chrome/Edge/desktop);
-   on iPhone/iPad (no prompt API) it shows the Add-to-Home-Screen steps instead. */
+/* INSTALL BUTTON with automatic device detection.
+   - Already installed / running inside the APK -> button hidden.
+   - Android Chrome/Edge  -> one-tap native install prompt (falls back to Chrome menu steps).
+   - iPhone/iPad Safari   -> Add to Home Screen steps (iOS has no install prompt API).
+   - iOS in-app browsers (WhatsApp, Facebook...) and other iOS browsers -> told how to open in Safari.
+   - Android in-app browsers / Samsung Internet -> told to open in Chrome.
+   - Desktop -> Chrome/Edge install icon in the address bar. */
 (() => {
-  const box = document.getElementById('installBox'), btn = document.getElementById('inst'), help = document.getElementById('instHelp');
-  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  if (standalone()) return;                       // already installed: keep button hidden
-  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const box = document.getElementById('installBox'), btn = document.getElementById('inst'),
+        help = document.getElementById('instHelp'), apk = document.getElementById('apkLink');
+  const ua = navigator.userAgent;
+  const native = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) || /; wv\)/.test(ua);
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (native || standalone) return;                       // already installed
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const android = /android/i.test(ua);
+  const inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|MicroMessenger|Snapchat|Twitter|TikTok|GSA\//i.test(ua);
+  const iosSafari = ios && /safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//i.test(ua) && !inApp;
+  const samsung = /SamsungBrowser/i.test(ua);
+  const chromeLike = /Chrome\/|CriOS|EdgA?\//i.test(ua) && !samsung && !inApp;
   let deferred = null;
   box.hidden = false;
+  if (android) apk.hidden = false;
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; });
   window.addEventListener('appinstalled', () => { box.hidden = true; deferred = null; });
+  btn.textContent = ios ? '⬇ Install on iPhone / iPad' : android ? '⬇ Install on Android' : '⬇ Install app';
+
+  const steps = () => {
+    const url = location.href.split('#')[0];
+    if (ios && inApp) return '<b>Open in Safari first</b><br>This in-app browser cannot install apps.<br>1. Tap <b>⋯</b> or the <b>share / compass</b> icon.<br>2. Choose <b>Open in Safari</b>.<br>3. Then tap <b>Install</b> again.<br><small>Or copy the link and paste it into Safari.</small>';
+    if (ios && !iosSafari) return '<b>iPhone / iPad install</b><br>1. Tap the <b>Share</b> button (square with arrow) in this browser.<br>2. Tap <b>Add to Home Screen</b> (if you do not see it, open this link in <b>Safari</b>).<br>3. Tap <b>Add</b>.';
+    if (ios) return '<b>Install on iPhone / iPad</b><br>1. Tap the <b>Share</b> button (square with arrow, bottom or top of Safari).<br>2. Scroll down and tap <b>Add to Home Screen</b>.<br>3. Tap <b>Add</b>. The app appears on your home screen and works offline.';
+    if (android && inApp) return '<b>Open in Chrome first</b><br>This in-app browser cannot install apps.<br>1. Tap <b>⋮</b> and choose <b>Open in browser</b> / <b>Open in Chrome</b>.<br>2. Tap <b>Install</b> again.<br><small>Or download the APK with the button below.</small>';
+    if (android && samsung) return '<b>Samsung Internet detected</b><br>Tap <b>☰ menu → Add page to → Home screen</b>, or open this link in <b>Chrome</b> for the full install.<br><small>Or download the APK with the button below.</small>';
+    if (android) return '<b>Install on Android</b><br>1. Tap the <b>⋮ menu</b> in Chrome.<br>2. Tap <b>Install app</b> (or <b>Add to Home screen → Install</b>).<br><small>If the button did nothing, wait a few seconds for the page to finish loading and try again, or download the APK below.</small>';
+    return '<b>Install on computer</b><br>In Chrome or Edge click the <b>install icon</b> at the right of the address bar, or menu → <b>Install Tank Volume Calculator</b>.';
+  };
   btn.onclick = async () => {
-    if (deferred) {
+    if (deferred) {                                        // one-tap native install
       deferred.prompt();
       const r = await deferred.userChoice; deferred = null;
       if (r.outcome === 'accepted') box.hidden = true;
       return;
     }
-    help.innerHTML = ios
-      ? '<b>Install on iPhone / iPad</b><br>1. Open this page in <b>Safari</b>.<br>2. Tap the <b>Share</b> button (square with arrow).<br>3. Scroll and tap <b>Add to Home Screen</b>, then <b>Add</b>.'
-      : '<b>Install on Android</b><br>Open this page in <b>Chrome</b>, tap the <b>⋮ menu</b>, then <b>Install app</b> (or <b>Add to Home screen</b>).<br><small>If the button does nothing, wait a few seconds for the page to finish loading and try again.</small>';
+    help.innerHTML = steps();
     help.hidden = !help.hidden;
-    if (!ios && !help.hidden) diagnose();
+    if (android && chromeLike && !help.hidden) diagnose();
   };
-  /* Shows exactly what is missing if the browser refuses to install */
+  /* Shows exactly what is missing if Chrome refuses to install */
   async function diagnose() {
     const ok = (t, g) => `<br>${g ? '✅' : '❌'} ${t}`;
     const get = async u => { try { return (await fetch(u, { cache: 'no-store' })).ok; } catch (e) { return false; } };
-    let r = '<br><b>Install check</b>';
-    if (/SamsungBrowser/i.test(navigator.userAgent)) r += '<br>⚠️ You are in <b>Samsung Internet</b>. Open this link in <b>Chrome</b> instead.';
+    let r = '<br><br><b>Install check</b>';
     r += ok('Secure https page', location.protocol === 'https:');
     const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
     r += ok('Offline engine (service worker) running', !!(reg && (reg.active || reg.installing || reg.waiting)));
