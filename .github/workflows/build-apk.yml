@@ -39,14 +39,17 @@ jobs:
 
       - name: Use our app icon instead of the default
         run: |
-          RES=android/app/src/main/res
-          rm -rf $RES/mipmap-anydpi-v26
-          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
-            dir=${d%%:*}; size=${d##*:}
-            for n in ic_launcher ic_launcher_round ic_launcher_foreground; do
-              convert icon-512.png -resize ${size}x${size} $RES/mipmap-$dir/$n.png
-            done
-          done
+          pip install pillow
+          python3 - <<'PY'
+          import os
+          from PIL import Image
+          res = 'android/app/src/main/res'
+          os.system('rm -rf ' + res + '/mipmap-anydpi-v26')
+          src = Image.open('icon-512.png').convert('RGBA')
+          for d, size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
+              for n in ('ic_launcher','ic_launcher_round','ic_launcher_foreground'):
+                  src.resize((size, size), Image.LANCZOS).save(f'{res}/mipmap-{d}/{n}.png')
+          PY
 
       - name: Build debug APK
         working-directory: android
